@@ -1,0 +1,54 @@
+{% raw %}
+{% set mgmt_ip_addr, mgmt_cidr = mgmt_ip.split('/') %}
+configure terminal
+
+hostname {{ hostname }}
+
+username {{ username }} password 0 {{ password }} role network-admin
+
+feature ssh
+
+line vty
+  session-limit {{ session_limit }}
+exit
+
+interface mgmt0
+  ip address {{ mgmt_ip }}
+  no shutdown
+exit
+
+ip route 0.0.0.0/0 {{ default_route }}
+
+ip access-list mgmt-ssh-acl
+{% for entry in acl_entries %}
+  remark {{ entry.remark }}
+  {% if entry.protocol == 'ip' %}
+    {{ entry.action }} ip {{ entry.source_subnet }} host {{ mgmt_ip_addr }}
+  {% else %}
+    {% if entry.dest_port == 'any' %}
+    {{ entry.action }} {{ entry.protocol }} {{ entry.source_subnet }} host {{ mgmt_ip_addr }}
+    {% else %}
+    {{ entry.action }} {{ entry.protocol }} {{ entry.source_subnet }} host {{ mgmt_ip_addr }} eq {{ entry.dest_port }}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+exit
+
+interface mgmt0
+  ip access-group mgmt-ssh-acl in
+exit
+
+feature nxapi
+
+! If your switch supports HTTP-to-HTTPS redirection:
+nxapi redirect http-to-https
+! Otherwise, disable HTTP altogether:
+! no nxapi http port
+
+nxapi https port {{ nxapi_https_port }}
+nxapi sandbox
+
+end
+
+copy running-config startup-config
+{% endraw %}
