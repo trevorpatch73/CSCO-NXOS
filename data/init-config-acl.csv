@@ -1,0 +1,5 @@
+src_ip,protocol,port,action,remark
+10.0.0.0/8,tcp,22,permit,ALLOW-SSH-INTERNAL
+10.0.0.0/8,icmp,any,permit,ALLOW-ICMP-INTERNAL
+10.0.0.0/8,tcp,8443,permit,ALLOW-NXAPI-HTTPS-INTERNAL
+any,ip,any,deny,LOGGING

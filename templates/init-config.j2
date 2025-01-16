@@ -7,19 +7,9 @@ hostname {{ hostname }}
 username {{ username }} password 0 {{ password }} role network-admin
 
 feature ssh
+ssh login-attempts 2
 
-line vty
-  session-limit {{ session_limit }}
-exit
-
-interface mgmt0
-  ip address {{ mgmt_ip }}
-  no shutdown
-exit
-
-ip route 0.0.0.0/0 {{ default_route }}
-
-ip access-list mgmt-ssh-acl
+ip access-list OOB-ACL
 {% for entry in acl_entries %}
   remark {{ entry.remark }}
   {% if entry.protocol == 'ip' %}
@@ -34,21 +24,44 @@ ip access-list mgmt-ssh-acl
 {% endfor %}
 exit
 
+line vty
+  session-limit {{ session_limit }}
+  exec-timeout 300
+  absolute-timeout 300
+  logout-warning 60
+  ip access-class OOB-ACL in
+exit
+
+vrf context management
+  ip route 0.0.0.0/0 {{ mgmt_gw }}
+exit
+
 interface mgmt0
-  ip access-group mgmt-ssh-acl in
+  description INIT-CONFIG-PY
+  ip address {{ mgmt_ip }}
+  ip access-group OOB-ACL in
+  lldp recieve
+  lldp transmit
+  vrf member management
+  no shutdown
 exit
 
 feature nxapi
-
-! If your switch supports HTTP-to-HTTPS redirection:
 nxapi redirect http-to-https
-! Otherwise, disable HTTP altogether:
-! no nxapi http port
-
 nxapi https port {{ nxapi_https_port }}
 nxapi sandbox
+nxapi use-vrf management
+nxapi idle-timeout 1440
+nxapi certificate httpscrt certfile bootflash:nxapi/{{ hostname }}-nxapi-cert.pem
+nxapi certificate httpskey keyfile bootflash:nxapi/{{ hostname }}-nxapi-key.pem
+nxapi certificate enable
 
 end
 
 copy running-config startup-config
+
+show interface mgmt0
+ssh key rsa
+show ssh key 
+show nxapi
 {% endraw %}
