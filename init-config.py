@@ -13,9 +13,9 @@ def read_acl_csv(csv_path):
         reader = csv.DictReader(f)
         for row in reader:
             entry = {
-                "source_subnet": row.get("source_subnet"),
+                "src_ip": row.get("src_ip"),
                 "protocol": row.get("protocol"),
-                "dest_port": row.get("dest_port"),
+                "port": row.get("port"),
                 "action": row.get("action"),
                 "remark": row.get("remark")
             }
@@ -40,16 +40,15 @@ def render_config(template_env, template_file, data_dict):
     template = template_env.get_template(template_file)
     return template.render(data_dict)
 
-def save_config(config_str, hostname):
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+def save_config(output_folder, config_str, hostname):
+    os.makedirs(output_folder, exist_ok=True)
     filename = f"init-config-{hostname}.txt"
-    full_path = os.path.join(OUTPUT_FOLDER, filename)
+    full_path = os.path.join(output_folder, filename)
     with open(full_path, 'w') as f:
         f.write(config_str)
     print(f"Saved config for '{hostname}' to: {full_path}")
 
 def main():
-
     TEMPLATE_FOLDER = "templates"
     DATA_FOLDER = "data"
     OUTPUT_FOLDER = "outputs"
@@ -96,9 +95,10 @@ def main():
             "password": password,
             "acl_entries": acl_entries
         }
+        print(data_dict)
 
         config_output = render_config(env, TEMPLATE_FILE, data_dict)
-        save_config(config_output, host["hostname"])
+        save_config(OUTPUT_FOLDER, config_output, host["hostname"])
 
     print("\nAll host configs generated successfully!")
 

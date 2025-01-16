@@ -1,4 +1,3 @@
-{% raw %}
 {% set mgmt_ip_addr, mgmt_cidr = mgmt_ip.split('/') %}
 configure terminal
 
@@ -13,12 +12,12 @@ ip access-list OOB-ACL
 {% for entry in acl_entries %}
   remark {{ entry.remark }}
   {% if entry.protocol == 'ip' %}
-    {{ entry.action }} ip {{ entry.source_subnet }} host {{ mgmt_ip_addr }}
+    {{ entry.action }} ip {{ entry.src_ip }} host {{ mgmt_ip_addr }}
   {% else %}
-    {% if entry.dest_port == 'any' %}
-    {{ entry.action }} {{ entry.protocol }} {{ entry.source_subnet }} host {{ mgmt_ip_addr }}
+    {% if entry.port == 'any' %}
+      {{ entry.action }} {{ entry.protocol }} {{ entry.src_ip }} host {{ mgmt_ip_addr }}
     {% else %}
-    {{ entry.action }} {{ entry.protocol }} {{ entry.source_subnet }} host {{ mgmt_ip_addr }} eq {{ entry.dest_port }}
+      {{ entry.action }} {{ entry.protocol }} {{ entry.src_ip }} host {{ mgmt_ip_addr }} eq {{ entry.port }}
     {% endif %}
   {% endif %}
 {% endfor %}
@@ -48,7 +47,7 @@ exit
 
 feature nxapi
 nxapi redirect http-to-https
-nxapi https port {{ nxapi_https_port }}
+nxapi https port {{ nxapi_port }}
 nxapi sandbox
 nxapi use-vrf management
 nxapi idle-timeout 1440
@@ -62,6 +61,5 @@ copy running-config startup-config
 
 show interface mgmt0
 ssh key rsa
-show ssh key 
+show ssh key
 show nxapi
-{% endraw %}

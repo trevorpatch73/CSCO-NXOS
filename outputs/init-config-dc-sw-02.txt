@@ -1,0 +1,60 @@
+configure terminal
+
+hostname dc-sw-02
+
+username admin password 0 cisco123 role network-admin
+
+feature ssh
+ssh login-attempts 2
+
+ip access-list OOB-ACL
+  remark ALLOW-SSH-INTERNAL
+      permit tcp 10.0.0.0/8 host 10.0.0.12 eq 22
+  remark ALLOW-ICMP-INTERNAL
+      permit icmp 10.0.0.0/8 host 10.0.0.12
+  remark ALLOW-NXAPI-HTTPS-INTERNAL
+      permit tcp 10.0.0.0/8 host 10.0.0.12 eq 8443
+  remark LOGGING
+    deny ip any host 10.0.0.12
+exit
+
+line vty
+  session-limit 2
+  exec-timeout 300
+  absolute-timeout 300
+  logout-warning 60
+  ip access-class OOB-ACL in
+exit
+
+vrf context management
+  ip route 0.0.0.0/0 10.0.0.1
+exit
+
+interface mgmt0
+  description INIT-CONFIG-PY
+  ip address 10.0.0.12/24
+  ip access-group OOB-ACL in
+  lldp recieve
+  lldp transmit
+  vrf member management
+  no shutdown
+exit
+
+feature nxapi
+nxapi redirect http-to-https
+nxapi https port 8443
+nxapi sandbox
+nxapi use-vrf management
+nxapi idle-timeout 1440
+nxapi certificate httpscrt certfile bootflash:nxapi/dc-sw-02-nxapi-cert.pem
+nxapi certificate httpskey keyfile bootflash:nxapi/dc-sw-02-nxapi-key.pem
+nxapi certificate enable
+
+end
+
+copy running-config startup-config
+
+show interface mgmt0
+ssh key rsa
+show ssh key
+show nxapi
